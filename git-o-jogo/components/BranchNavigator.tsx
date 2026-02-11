@@ -1,10 +1,8 @@
 'use client';
 
 import { useGameStore } from '../store/gameStore';
-import { GitBranch, ArrowRight, Check } from 'lucide-react';
+import { GitBranch, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-import { useState } from 'react';
 
 export default function BranchNavigator() {
   const { graph, getCurrentBranchName, checkoutBranch, openReviewModal } = useGameStore();
@@ -18,62 +16,47 @@ export default function BranchNavigator() {
 
   return (
     <>
-    <div className="bg-[#2c1810]/90 rounded-lg border border-[#8b5a2b] p-4 shadow-xl backdrop-blur-sm">
-      <h3 className="text-[#c5a059] font-fantasy text-lg mb-4 text-center border-b border-[#8b5a2b]/30 pb-2 flex items-center justify-center gap-2">
-        <GitBranch className="w-5 h-5" />
-        Profecias Ativas (Branches)
-      </h3>
+    <div className="bg-[var(--color-bg-main)]/50 rounded-sm border border-[var(--color-panel-border)] p-2">
       
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[var(--color-gold-dim)] scrollbar-track-transparent">
         {branches.map((branch) => {
            const isActive = branch.name === currentBranch;
-           const isMain = branch.name === 'main';
            
-           // Show merge button if we are NOT on this branch, AND this branch is 'main' (or generic target logic)
-           // Simplify: allow merging CURRENT branch INTO this branch (if this branch is not current)
-           const canMergeInto = !isActive; 
-
            return (
              <motion.div
                key={branch.name}
-               whileHover={{ scale: 1.02 }}
-               className={`p-3 rounded border transition-colors cursor-pointer flex items-center justify-between group ${
+               whileHover={{ x: 4 }}
+               className={`p-3 rounded-sm border transition-all cursor-pointer flex items-center justify-between group ${
                    isActive 
-                   ? 'bg-[#c5a059]/20 border-[#c5a059] text-[#c5a059]' 
-                   : 'bg-[#1a0f0a]/50 border-[#8b5a2b]/30 text-[#f4e4bc]/70 hover:bg-[#8b5a2b]/20 hover:text-[#f4e4bc]'
+                   ? 'bg-[var(--color-gold)]/10 border-[var(--color-gold)] text-[var(--color-gold)] shadow-[0_0_10px_rgba(197,160,89,0.1)]' 
+                   : 'bg-transparent border-transparent hover:border-[var(--color-panel-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'
                }`}
                onClick={() => !isActive && checkoutBranch(branch.name)}
              >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    <GitBranch className={`w-4 h-4 ${isActive ? 'fill-[var(--color-gold)]/20' : ''}`} />
                     <span className={`font-mono text-sm ${isActive ? 'font-bold' : ''}`}>
                         {branch.name === 'main' ? 'O Destino (main)' : branch.name}
                     </span>
-                    {isActive && <span className="text-[10px] bg-[#c5a059] text-[#2c1810] px-1 rounded font-bold">HEAD</span>}
+                    {isActive && <span className="text-[9px] border border-[var(--color-gold)] text-[var(--color-gold)] px-1 rounded uppercase tracking-wider">HEAD</span>}
                 </div>
                 
                 <div className="flex items-center gap-2">
-                    {/* Merge Button logic: If I am on a feature branch, and I hover over 'main', show Merge Button? 
-                        Or just separate button? 
-                        Let's add a small 'Pull Request' button on the branch item 
-                    */}
-                    {/* Merge Button: Only show if I am NOT on main (can't merge main into others) */}
                     {!isActive && currentBranch !== 'main' && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleMergeClick(branch.name);
                             }}
-                            className="bg-purple-900/50 hover:bg-purple-600 text-purple-200 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="bg-[var(--color-accent-green)]/10 hover:bg-[var(--color-accent-green)]/20 text-[var(--color-accent-green)] p-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--color-accent-green)]/30"
                             title={`Fundir (Merge) atual em ${branch.name}`}
                         >
                              <Check className="w-3 h-3" />
                         </button>
                     )}
 
-                    {isActive ? (
-                        <Check className="w-4 h-4" />
-                    ) : (
-                        <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100" />
+                    {isActive && (
+                        <div className="w-2 h-2 rounded-full bg-[var(--color-gold)] shadow-[0_0_5px_var(--color-gold)]" />
                     )}
                 </div>
              </motion.div>
@@ -81,8 +64,8 @@ export default function BranchNavigator() {
         })}
       </div>
       
-      <div className="mt-4 text-[10px] text-[#f4e4bc]/40 text-center font-mono italic">
-          Clique para mudar sua visão. <br/> Botão roxo = Iniciar Merge
+      <div className="mt-4 text-[10px] text-[var(--color-text-muted)] text-center font-mono opacity-50">
+          Clique para mudar sua visão.
       </div>
     </div>
 

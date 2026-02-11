@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import io, { type Socket } from 'socket.io-client';
-import { GitGraph, createInitialCommit } from '../lib/git-logic';
+import { GitGraph, createInitialCommit, getBlame } from '../lib/git-logic';
 
 interface GameState {
   socket: any | null;
@@ -42,6 +42,9 @@ interface GameState {
   commandLog: { id: string; command: string; description?: string; timestamp: number }[];
   addCommand: (command: string, description?: string) => void;
   checkoutBranch: (branchName: string) => void;
+  
+  // Blame support
+  getBlame: () => import('../lib/git-logic').BlameInfo[];
 }
 
 const initialStory = "No princípio, havia apenas o vazio. Então, a primeira linha de código foi escrita...";
@@ -229,6 +232,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       socket.emit('checkout_branch', { branchName });
   },
+
+  getBlame: () => {
+      const { graph, currentBranch } = get();
+      const branch = graph.branches[currentBranch];
+      if (!branch) return [];
+      
+      return getBlame(graph.commits, branch.headCommitId);
+  }
 }));
 
 

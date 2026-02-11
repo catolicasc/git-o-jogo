@@ -4,10 +4,16 @@
   --font-cinzel: var(--font-cinzel);
   --font-lato: var(--font-lato);
 
-  --color-parchment: #f4e4bc;
-  --color-ink: #2c1810;
+  /* Dark Fantasy Palette */
+  --color-bg-main: #0f0a0a;
+  --color-panel: #1a1110;
+  --color-panel-border: #3d2618;
   --color-gold: #c5a059;
-  --color-mystic: #4a1c40;
+  --color-gold-dim: #8b5a2b;
+  --color-text-main: #e5e5e5;
+  --color-text-muted: #a0a0a0;
+  --color-accent-green: #22c55e;
+  --color-accent-red: #ef4444;
 }
 
 /* Custom Utilities */
@@ -27,4 +33,29 @@
     black 90%,
     transparent
   );
+}
+
+/* Custom Scrollbar for Dark Theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-main); 
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-dim); 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold); 
+}
+
+/* Utility for Gold Borders */
+.border-gold-glow {
+    border: 1px solid var(--color-gold-dim);
+    box-shadow: 0 0 10px rgba(197, 160, 89, 0.1);
 }

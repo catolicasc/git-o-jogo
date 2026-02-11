@@ -2,64 +2,56 @@
 
 import { useGameStore } from '../store/gameStore';
 import { Gitgraph, templateExtend, TemplateName, Orientation } from '@gitgraph/react';
-import { useMemo } from 'react';
 
 export default function TreeOfWorlds() {
   const { graph } = useGameStore();
 
-  // Define Fantasy Theme Template
+  // Define Dark Fantasy Theme Template
   const fantasyTemplate = templateExtend(TemplateName.Metro, {
     colors: ['#c5a059', '#22c55e', '#ef4444', '#3b82f6', '#a855f7'],
     branch: {
-      lineWidth: 3,
+      lineWidth: 4,
+      spacing: 50,
       label: {
         font: 'normal 10px "Cinzel", serif',
         borderRadius: 4,
-        color: '#2c1810',
+        color: '#e5e5e5', 
+        strokeColor: '#8b5a2b',
       },
     },
     commit: {
-      spacing: 50,
+      spacing: 60,
       dot: {
-        size: 8,
+        size: 10,
         strokeWidth: 2,
         color: '#c5a059',
       },
       message: {
         displayAuthor: true,
         displayHash: true,
-        font: 'normal 12px "MedievalSharp", serif',
-        color: '#f4e4bc',
+        font: 'normal 12px "Lato", sans-serif',
+        color: '#e5e5e5',
       },
     },
   });
 
   return (
-    <div className="h-full bg-[#2c1810]/95 rounded-lg border border-[#8b5a2b] shadow-xl backdrop-blur-sm flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="p-2 border-b border-[#8b5a2b]/30 bg-[#1a0f0a]/50 shrink-0 z-20 text-center">
-        <h3 className="text-[#c5a059] font-fantasy text-lg">
-          Linha do Tempo
-        </h3>
-      </div>
-
-      <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-[#c5a059] scrollbar-track-[#2c1810]">
+    <div className="h-full flex flex-col">
+       {/* Scrolling Container */}
+      <div className="flex-1 overflow-auto p-4 scrollbar-thin scrollbar-thumb-[var(--color-gold-dim)] scrollbar-track-transparent">
         <Gitgraph key={Object.keys(graph.commits).length} options={{
           template: fantasyTemplate,
           orientation: Orientation.VerticalReverse, // Newest at top
-          author: 'Invocador', // Default author fallbacks
+          author: 'Invocador', 
         }}>
           {(gitgraph) => {
             // 1. Sort commits chronologically
             const sortedCommits = Object.values(graph.commits).sort((a, b) => a.timestamp - b.timestamp);
 
             // 2. Branch Affinity Calculation
-            // We identify which branch every commit belongs to efficiently.
             const commitAffinity: Record<string, string> = {};
             const visitedForAffinity = new Set<string>();
 
-            // Helper: Trace back from a commit to root, assigning the branch name
-            // Stop if we hit a node already assigned to a *different* priority branch
             const traceAffinity = (commitId: string | null, branchName: string) => {
                 const queue = [commitId];
                 while (queue.length > 0) {
@@ -67,22 +59,17 @@ export default function TreeOfWorlds() {
                     if (!currId || !graph.commits[currId]) continue;
                     
                     if (visitedForAffinity.has(currId)) {
-                        // Collision? If it's already Main, we stop.
-                        // Ideally Main traces first, so it claims everything it owns.
                         continue; 
                     }
 
                     commitAffinity[currId] = branchName;
                     visitedForAffinity.add(currId);
                     
-                    // Only trace Primary Parent for linear affinity
-                    // Secondary parents (merges) are jump-off points, not the branch history itself
                     queue.push(graph.commits[currId].parentId);
                 }
             };
 
             // A. PRIORITY: Claim Main History First
-            // This ensures the "Spine" is contiguous
             if (graph.branches['main']) {
                 traceAffinity(graph.branches['main'].headCommitId, 'main');
             }
@@ -95,18 +82,19 @@ export default function TreeOfWorlds() {
             });
 
             // 3. Render Initialization
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const branchVisuals: Record<string, any> = {};
             
-            // ALWAYS initialize Main first to ensure it takes the first "lane"
+            // ALWAYS initialize Main first
             const mainBranch = gitgraph.branch({
                 name: 'O Destino (main)',
                 style: {
                     color: '#c5a059',
-                    lineWidth: 5, // Extra thick spine
-                    spacing: 40,
+                    lineWidth: 4, 
+                    spacing: 50,
                     label: {
                         color: '#c5a059',
-                        strokeColor: '#2c1810',
+                        strokeColor: '#3d2618',
                         font: 'bold 12pt "Cinzel", serif'
                     }
                 }
@@ -122,8 +110,6 @@ export default function TreeOfWorlds() {
                 // Ensure Branch Exists
                 let branchVisual = branchVisuals[affinity];
                 if (!branchVisual) {
-                    // We need to branch off from somewhere. 
-                    // Find the parent's branch visual.
                     const parentId = commit.parentId;
                     const parentAffinity = parentId ? (commitAffinity[parentId] || 'main') : 'main';
                     
@@ -132,45 +118,61 @@ export default function TreeOfWorlds() {
                     branchVisual = parentVisual.branch({
                         name: affinity === 'detached' ? '?' : affinity,
                         style: {
-                            lineWidth: 3,
-                            spacing: 40,
+                            lineWidth: 3, 
+                            spacing: 50,
+                            label: {
+                                color: '#e5e5e5',
+                                strokeColor: '#1a1110', 
+                            }
                         }
                     });
                     branchVisuals[affinity] = branchVisual;
                 }
 
-                // Handle Merges (Secondary Parent)
                 if (commit.secondaryParentId) {
                     const incomingAffinity = commitAffinity[commit.secondaryParentId];
                     const incomingBranch = branchVisuals[incomingAffinity];
+                    const playerBranchName = incomingAffinity;
                     
                     if (incomingBranch && incomingAffinity !== affinity) {
+                        const mergeTooltip = `Invocador: ${commit.author}\nData: ${new Date(commit.timestamp).toLocaleString('pt-BR')}\nHashId: ${commit.id}\nMerge: ${playerBranchName} -> ${affinity}`;
+                        
                         branchVisual.merge({
                             branch: incomingBranch,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             commitOptions: {
                                 hash: commit.id,
                                 subject: displayMessage,
                                 author: commit.author,
                                 dotText: commit.id === graph.head ? '👑' : '⚡',
+                                tooltip: mergeTooltip as any,
                                 style: {
-                                    message: { font: 'bold 12px "MedievalSharp"' },
-                                    dot: { size: 10, strokeWidth: 3 }
+                                    message: { font: 'bold 12px "Lato"', color: '#e5e5e5' },
+                                    dot: { size: 10, strokeWidth: 3, color: '#f59e0b' }
                                 }
                             }
                         });
-                        return; // Merge handled the commit
+                        return;
                     }
                 }
 
                 // Regular Commit
+                const tooltipContent = `Invocador: ${commit.author}\nData: ${new Date(commit.timestamp).toLocaleString('pt-BR')}\nHashId: ${commit.id}`;
+                
                 branchVisual.commit({
                     hash: commit.id,
                     subject: displayMessage,
                     author: commit.author,
                     dotText: commit.id === graph.head ? '👑' : '📜',
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    tooltip: tooltipContent as any, // Force tooltip property
                     style: {
                          dot: {
                              color: affinity === 'main' ? '#c5a059' : undefined,
+                             strokeColor: '#1a1110' // Contrast stroke
+                         },
+                         message: {
+                             color: commit.id === graph.head ? '#c5a059' : '#e5e5e5',
                          }
                     }
                 });
