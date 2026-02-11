@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: git-o-jogo
+    env: node
+    plan: free
+    rootDir: git-o-jogo
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
