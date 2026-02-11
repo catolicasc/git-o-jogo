@@ -73,6 +73,11 @@ app.prepare().then(() => {
             name,
             headCommitId: newCommit.id
         };
+
+        // AUTO-SWITCH: Move the creator to this new branch
+        if (graph.activePlayers && graph.activePlayers[socket.id]) {
+            graph.activePlayers[socket.id].branch = name;
+        }
         
         io.to("game_room").emit("sync_graph", graph);
     });
@@ -88,25 +93,10 @@ app.prepare().then(() => {
         const currentBranchHead = graph.branches[playerBranchName].headCommitId;
 
         // PROTECTED BRANCH LOGIC: "main" is read-only for direct commits.
-        // If user is on "main", we MUST fork them to a new branch.
+        // If user is on "main", we MUST block them.
         if (playerBranchName === 'main') {
-             console.log("Attempt to commit to main blocked. Forking new branch...");
-             
-             const newCommit = createCommit(message, author, parentId, content);
-             graph.commits[newCommit.id] = newCommit;
-
-             const newBranchName = `feature-${newCommit.id.substring(0,6)}`;
-             graph.branches[newBranchName] = {
-                 name: newBranchName,
-                 headCommitId: newCommit.id
-             };
-
-             if (graph.activePlayers && graph.activePlayers[socket.id]) {
-                 graph.activePlayers[socket.id].branch = newBranchName;
-             }
-
-             io.to("game_room").emit("sync_graph", graph);
-             io.to(socket.id).emit("message", `A Profecia "O Destino (main)" é sagrada e imutável! Uma nova profecia "${newBranchName}" foi criada para suas escrituras.`);
+             console.log("Attempt to commit to main blocked.");
+             socket.emit("error", `A Profecia "O Destino (main)" é sagrada e imutável! Você precisa criar uma nova ramificação (branch) para escrever sua versão da história.`);
              return;
         }
 
@@ -203,6 +193,7 @@ app.prepare().then(() => {
             // AUTO-DELETE BRANCH Logic
             if (playerBranchName !== 'main') {
                 delete graph.branches[playerBranchName];
+                
                 // Move players on that branch to target
                 Object.keys(graph.activePlayers || {}).forEach(pid => {
                     if (graph.activePlayers![pid].branch === playerBranchName) {
@@ -238,10 +229,9 @@ app.prepare().then(() => {
 
         // Create a merge commit
         // Parent 1: Target Head (the one we are merging into)
-        // Parent 2: Source Head (us) -> In real git. 
-        // Here `createCommit` only takes one parent. Let's use Target Head as primary parent.
+        // Parent 2: Source Head (us)
         
-        const newCommit = createCommit(message, author, targetBranch.headCommitId, content);
+        const newCommit = createCommit(message, author, targetBranch.headCommitId, content, sourceBranch.headCommitId);
         graph.commits[newCommit.id] = newCommit;
 
         // Update target branch to this new commit
@@ -255,6 +245,7 @@ app.prepare().then(() => {
         // AUTO-DELETE BRANCH Logic (after conflict resolution)
         if (playerBranchName !== 'main') {
             delete graph.branches[playerBranchName];
+
             // Move players on that branch to target
             Object.keys(graph.activePlayers || {}).forEach(pid => {
                 if (graph.activePlayers![pid].branch === playerBranchName) {

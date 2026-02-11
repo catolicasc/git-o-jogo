@@ -8,11 +8,13 @@ export interface Commit {
   timestamp: number;
   parentId: string | null;
   content: string; // The "story" at this point
+  secondaryParentId?: string | null; // For merge commits
 }
 
 export interface Branch {
   name: string;
   headCommitId: string;
+  status?: 'active' | 'merged';
 }
 
 export interface GitGraph {
@@ -29,6 +31,7 @@ export const createInitialCommit = (initialStory: string): Commit => {
     author: "System",
     timestamp: Date.now(),
     parentId: null,
+    secondaryParentId: null,
     content: initialStory,
   };
 };
@@ -37,7 +40,8 @@ export const createCommit = (
   message: string,
   author: string,
   parentId: string,
-  content: string
+  content: string,
+  secondaryParentId: string | null = null
 ): Commit => {
   return {
     id: uuidv4().substring(0, 7),
@@ -45,6 +49,7 @@ export const createCommit = (
     author,
     timestamp: Date.now(),
     parentId,
+    secondaryParentId,
     content,
   };
 };

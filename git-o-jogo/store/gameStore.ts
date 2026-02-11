@@ -22,6 +22,14 @@ interface GameState {
   reviewModal: { isOpen: boolean; targetBranch: string | null };
   openReviewModal: (targetBranch: string) => void;
   closeReviewModal: () => void;
+
+  commitModal: { isOpen: boolean };
+  openCommitModal: () => void;
+  closeCommitModal: () => void;
+
+  notifications: { id: string; message: string; type: 'info' | 'error' }[];
+  addNotification: (message: string, type?: 'info' | 'error') => void;
+  removeNotification: (id: string) => void;
   
   // Getters for keys used in components
   getStory: () => string;
@@ -60,6 +68,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   reviewModal: { isOpen: false, targetBranch: null },
   openReviewModal: (targetBranch: string) => set({ reviewModal: { isOpen: true, targetBranch } }),
   closeReviewModal: () => set({ reviewModal: { isOpen: false, targetBranch: null } }),
+
+  commitModal: { isOpen: false },
+  openCommitModal: () => set({ commitModal: { isOpen: true } }),
+  closeCommitModal: () => set({ commitModal: { isOpen: false } }),
+
+  notifications: [],
+  addNotification: (message, type = 'info') => {
+      const id = Math.random().toString(36).substr(2, 9);
+      set(state => ({ notifications: [...state.notifications, { id, message, type }] }));
+      setTimeout(() => get().removeNotification(id), 5000);
+  },
+  removeNotification: (id) => {
+      set(state => ({ notifications: state.notifications.filter(n => n.id !== id) }));
+  },
 
   // Local state for the user's current view
 
@@ -107,6 +129,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ isConnected: false });
     });
 
+    socket.on('message', (msg: string) => {
+        get().addNotification(msg, 'info');
+    });
+
+    socket.on('error', (msg: string) => {
+        get().addNotification(msg, 'error');
+    });
+
     socket.on('sync_graph', (newGraph: GitGraph) => {
         set(state => {
             // If we have a currentBranch, ensure it exists in new graph, else fallback to head
@@ -145,8 +175,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   commitChange: (content: string, message: string) => {
-      const { socket, graph, playerId, addCommand, playerName, currentBranch } = get();
+      const { socket, graph, playerId, addCommand, playerName, currentBranch, addNotification } = get();
       if (!socket || !playerId) return;
+
+      if (currentBranch === 'main') {
+          addNotification("A Profecia 'O Destino (main)' é sagrada e imutável! Você deve criar uma nova ramificação (branch) para propor mudanças.", 'error');
+          return;
+      }
 
       const parentId = graph.branches[currentBranch]?.headCommitId;
       if (!parentId) return;

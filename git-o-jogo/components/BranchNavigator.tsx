@@ -9,7 +9,8 @@ import { useState } from 'react';
 export default function BranchNavigator() {
   const { graph, getCurrentBranchName, checkoutBranch, openReviewModal } = useGameStore();
   const currentBranch = getCurrentBranchName();
-  const branches = Object.values(graph.branches);
+  // Only show active branches
+  const branches = Object.values(graph.branches).filter(b => b.status !== 'merged');
 
   const handleMergeClick = (targetBranch: string) => {
       openReviewModal(targetBranch);

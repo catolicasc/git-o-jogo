@@ -71,19 +71,10 @@ export default function StoryBook() {
         {/* Edit / Commit Controls */}
         <div className="absolute bottom-4 right-4 flex gap-2">
             <button 
-                onClick={() => {
-                   const newText = prompt("Escreva o próximo capítulo:", story);
-                   if (newText && newText !== story) {
-                       const msg = prompt("O que você alterou? (Mensagem do Commit)");
-                       if (msg) {
-                           // Access store via hook in a real component, doing rough implementation here
-                           // Ideally this component should have state for editing mode
-                           useGameStore.getState().commitChange(newText, msg);
-                       }
-                   }
-                }}
-                className="bg-[#c5a059] text-[#2c1810] px-4 py-2 rounded font-bold hover:bg-[#d4b06a] transition-colors shadow-md"
+                onClick={() => useGameStore.getState().openCommitModal()}
+                className="bg-[#c5a059] text-[#2c1810] px-4 py-2 rounded font-bold hover:bg-[#d4b06a] transition-all shadow-md flex items-center gap-2 hover:scale-105 active:scale-95"
             >
+                <div className="w-2 h-2 rounded-full bg-[#2c1810] animate-pulse" />
                 Escrever (Commit)
             </button>
         </div>

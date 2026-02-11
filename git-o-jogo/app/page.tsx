@@ -10,6 +10,8 @@ import BranchNavigator from '@/components/BranchNavigator';
 import MagicalLottie from '@/components/MagicalLottie';
 import MergeHandAnimation from '@/components/MergeHandAnimation';
 import CodeReviewModal from '@/components/CodeReviewModal';
+import CommitModal from '@/components/CommitModal';
+import NotificationSystem from '@/components/NotificationSystem';
 import { useGameStore } from "../store/gameStore";
 import { useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
@@ -66,16 +68,27 @@ export default function Home() {
         onCancel={() => useGameStore.getState().closeReviewModal()}
       />
 
+      <CommitModal
+        isOpen={useGameStore((s) => s.commitModal.isOpen)}
+        onConfirm={(content, message) => {
+            useGameStore.getState().commitChange(content, message);
+            useGameStore.getState().closeCommitModal();
+        }}
+        onCancel={() => useGameStore.getState().closeCommitModal()}
+      />
+
+      <NotificationSystem />
+
       {/* Main Content (Z-Index > 0) */}
-      <div className="relative z-10 w-full max-w-[90rem] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 p-4">
+      <div className="relative z-10 w-full max-w-[98vw] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0 p-2">
         
-        {/* Left Panel: Git Graph Visualization (Timeline) */}
-        <div className="lg:col-span-3 h-full overflow-hidden">
+        {/* Left Panel: Git Graph Visualization (Timeline) - Expanded */}
+        <div className="lg:col-span-4 h-full overflow-hidden">
             <TreeOfWorlds />
         </div>
 
         {/* Center Panel: The Main Story */}
-        <div className="lg:col-span-6 h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#c5a059] scrollbar-track-[#2c1810]">
+        <div className="lg:col-span-5 h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#c5a059] scrollbar-track-[#2c1810]">
             <StoryBook />
         </div>
 

@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
-import { AlertTriangle, GitMerge, ArrowRight, ArrowLeft, X, Save } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ArrowLeft, X, Save } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function ConflictDuel() {
@@ -20,7 +20,7 @@ export default function ConflictDuel() {
     if (!socket) return;
     
     // Listen for conflict event
-    socket.on('merge_conflict', (data: any) => {
+    socket.on('merge_conflict', (data: { sourceBranch: string; targetBranch: string; baseContent: string; myContent: string }) => {
         setConflictData(data);
         // Initialize with base content? Or empty?
         // Let's initialize with base content as a starting point, or maybe empty to force construction?
