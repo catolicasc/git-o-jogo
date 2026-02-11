@@ -179,15 +179,28 @@ app.prepare().then(() => {
         };
 
         if (isFastForwardable(targetHeadId, myHeadId)) {
-            // Fast-forward merge
-            graph.branches[target].headCommitId = myHeadId;
+            // Fast-forward merge possibility
+            // But we want to FORCE a merge commit to keep history clear (git merge --no-ff behavior)
+            console.log("Fast-forward possible, but forcing merge commit for visual clarity.");
+            
+            const message = `Merge da profecia "${playerBranchName}" em "${target}"`;
+            const author = graph.activePlayers?.[socket.id]?.name || 'Invocador';
+            
+            // Create Merge Commit
+            // Parent 1: Target (Main)
+            // Parent 2: Source (Feature)
+            const newCommit = createCommit(message, author, targetHeadId, graph.commits[myHeadId].content, myHeadId);
+            
+            graph.commits[newCommit.id] = newCommit;
+            graph.branches[target].headCommitId = newCommit.id;
+
             // Only update global head if we merged INTO main
             if (target === 'main') {
-                graph.head = myHeadId;
+                graph.head = newCommit.id;
             }
             
             io.to("game_room").emit("sync_graph", graph);
-            io.to("game_room").emit("message", `A Profecia "${playerBranchName}" foi aceita e fundida na Verdade "${target}"! (Fast-forward)`);
+            io.to("game_room").emit("message", `A Profecia "${playerBranchName}" foi aceita e fundida na Verdade "${target}"!`);
             io.to(socket.id).emit("merge_success_yours"); // Trigger animation for the merger
             
             // AUTO-DELETE BRANCH Logic
