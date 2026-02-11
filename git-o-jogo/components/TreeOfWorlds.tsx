@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore } from '../store/gameStore';
-import { GitCommit, GitBranch, User, Clock } from 'lucide-react';
+import { GitCommit, GitBranch, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -12,7 +12,7 @@ export default function TreeOfWorlds() {
   const commits = Object.values(graph.commits).sort((a, b) => b.timestamp - a.timestamp);
 
   return (
-    <div className="h-[calc(100vh-120px)] bg-[#2c1810]/95 rounded-lg border border-[#8b5a2b] shadow-xl backdrop-blur-sm flex flex-col overflow-hidden">
+    <div className="h-full bg-[#2c1810]/95 rounded-lg border border-[#8b5a2b] shadow-xl backdrop-blur-sm flex flex-col overflow-hidden">
       
       {/* Header */}
       <div className="p-4 border-b border-[#8b5a2b]/30 bg-[#1a0f0a]/50">

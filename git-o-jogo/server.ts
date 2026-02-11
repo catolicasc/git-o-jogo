@@ -106,7 +106,7 @@ app.prepare().then(() => {
              }
 
              io.to("game_room").emit("sync_graph", graph);
-             io.to(socket.id).emit("message", `A Profecia "main" é sagrada e imutável! Uma nova profecia "${newBranchName}" foi criada para suas escrituras.`);
+             io.to(socket.id).emit("message", `A Profecia "O Destino (main)" é sagrada e imutável! Uma nova profecia "${newBranchName}" foi criada para suas escrituras.`);
              return;
         }
 
@@ -167,7 +167,7 @@ app.prepare().then(() => {
 
         // RESTRICTION: 'main' cannot merge into other branches
         if (playerBranchName === 'main') {
-            io.to(socket.id).emit("message", `A Verdade Absoluta (main) não pode ser diluída em profecias menores. Apenas o contrário é permitido.`);
+            io.to(socket.id).emit("message", `A Verdade Absoluta (O Destino) não pode ser diluída em profecias menores. Apenas o contrário é permitido.`);
             return;
         }
 
@@ -197,7 +197,8 @@ app.prepare().then(() => {
             }
             
             io.to("game_room").emit("sync_graph", graph);
-            io.to("game_room").emit("message", `A profecia "${playerBranchName}" tornou-se a Verdade absoluta em "${target}"!`);
+            io.to("game_room").emit("message", `A Profecia "${playerBranchName}" foi aceita e fundida na Verdade "${target}"! (Fast-forward)`);
+            io.to(socket.id).emit("merge_success_yours"); // Trigger animation for the merger
             
             // AUTO-DELETE BRANCH Logic
             if (playerBranchName !== 'main') {
@@ -265,6 +266,7 @@ app.prepare().then(() => {
 
         io.to("game_room").emit("sync_graph", graph);
         io.to("game_room").emit("message", `CONFLITO RESOLVIDO! A história avança!`);
+        io.to(socket.id).emit("merge_success_yours");
     });
 
     socket.on("disconnect", () => {

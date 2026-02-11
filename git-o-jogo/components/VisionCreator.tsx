@@ -19,7 +19,7 @@ export default function VisionCreator() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-50">
+    <div className="fixed bottom-56 right-8 z-50">
       <AnimatePresence>
         {isOpen && (
           <motion.div

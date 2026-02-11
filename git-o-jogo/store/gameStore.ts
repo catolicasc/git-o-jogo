@@ -14,6 +14,15 @@ interface GameState {
   commitChange: (content: string, message: string) => void;
   mergeProposal: (targetBranch: string) => void;
   
+  // Animation State
+  showMergeAnimation: boolean;
+  setMergeAnimation: (show: boolean) => void;
+
+  // Review Modal State
+  reviewModal: { isOpen: boolean; targetBranch: string | null };
+  openReviewModal: (targetBranch: string) => void;
+  closeReviewModal: () => void;
+  
   // Getters for keys used in components
   getStory: () => string;
   getCurrentBranchName: () => string;
@@ -44,6 +53,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   playerId: null,
   playerName: null,
   commandLog: [],
+  showMergeAnimation: false,
+
+  setMergeAnimation: (show: boolean) => set({ showMergeAnimation: show }),
+
+  reviewModal: { isOpen: false, targetBranch: null },
+  openReviewModal: (targetBranch: string) => set({ reviewModal: { isOpen: true, targetBranch } }),
+  closeReviewModal: () => set({ reviewModal: { isOpen: false, targetBranch: null } }),
 
   // Local state for the user's current view
 
@@ -102,6 +118,10 @@ export const useGameStore = create<GameState>((set, get) => ({
                 currentBranch: newBranch
             };
         });
+    });
+
+    socket.on('merge_success_yours', () => {
+        set({ showMergeAnimation: true });
     });
 
     set({ socket });

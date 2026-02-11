@@ -2,11 +2,14 @@
 
 import StoryBook from "../components/StoryBook";
 import VisionCreator from "../components/VisionCreator";
-import TreeOfWorlds from "../components/TreeOfWorlds";
+import TreeOfWorlds from '@/components/TreeOfWorlds';
 import OnboardingModal from "../components/OnboardingModal";
-import SpellTerminal from "../components/SpellTerminal";
+import SpellTerminal from '@/components/SpellTerminal';
 import ConflictDuel from "../components/ConflictDuel";
-import BranchNavigator from "../components/BranchNavigator";
+import BranchNavigator from '@/components/BranchNavigator';
+import MagicalLottie from '@/components/MagicalLottie';
+import MergeHandAnimation from '@/components/MergeHandAnimation';
+import CodeReviewModal from '@/components/CodeReviewModal';
 import { useGameStore } from "../store/gameStore";
 import { useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +27,7 @@ export default function Home() {
   }, [connect]);
 
   return (
-    <main className="min-h-screen relative overflow-hidden flex flex-col items-center pt-20 pb-48 font-fantasy">
+    <main className="h-screen max-h-screen relative overflow-hidden flex flex-col items-center pt-20 pb-52 font-fantasy">
       
       {/* Background Elements */}
       <div className="absolute inset-0 bg-[#2c1810]" />
@@ -41,24 +44,43 @@ export default function Home() {
           </div>
       )}
 
-      <h1 className="text-6xl font-fantasy text-[#4a1c40] mb-8 drop-shadow-lg z-10">
+      <h1 className="text-6xl font-fantasy text-[#4a1c40] mb-4 drop-shadow-lg z-10 shrink-0">
         As Crônicas de Aetheria
       </h1>
 
-      <div className="flex w-full max-w-7xl mx-auto px-4 gap-8">
+      {/* Lottie Animation Layers */}
+      <MagicalLottie />
+      <MergeHandAnimation />
+      
+      {/* Global Modals (High Z-Index) */}
+      <CodeReviewModal 
+        isOpen={useGameStore((s) => s.reviewModal.isOpen)}
+        targetBranch={useGameStore((s) => s.reviewModal.targetBranch) || ""}
+        onConfirm={() => {
+            const { reviewModal, mergeProposal, closeReviewModal } = useGameStore.getState();
+            if (reviewModal.targetBranch) {
+                mergeProposal(reviewModal.targetBranch);
+            }
+            closeReviewModal();
+        }}
+        onCancel={() => useGameStore.getState().closeReviewModal()}
+      />
+
+      {/* Main Content (Z-Index > 0) */}
+      <div className="relative z-10 w-full max-w-[90rem] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 p-4">
         
-        {/* Left Panel: Git Graph Visualization */}
-        <div className="hidden lg:block w-1/4">
+        {/* Left Panel: Git Graph Visualization (Timeline) */}
+        <div className="lg:col-span-3 h-full overflow-hidden">
             <TreeOfWorlds />
         </div>
 
         {/* Center Panel: The Main Story */}
-        <div className="flex-1 z-10">
+        <div className="lg:col-span-6 h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#c5a059] scrollbar-track-[#2c1810]">
             <StoryBook />
         </div>
 
-        {/* Right Panel: Branch Navigation */}
-        <div className="hidden lg:block w-1/4">
+        {/* Right Panel: Branch Navigation (Active Prophecies) */}
+        <div className="lg:col-span-3 h-full">
              <BranchNavigator />
         </div>
       

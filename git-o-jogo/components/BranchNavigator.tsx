@@ -5,27 +5,14 @@ import { GitBranch, ArrowRight, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { useState } from 'react';
-import CodeReviewModal from './CodeReviewModal';
 
 export default function BranchNavigator() {
-  const { graph, getCurrentBranchName, checkoutBranch, mergeProposal } = useGameStore();
+  const { graph, getCurrentBranchName, checkoutBranch, openReviewModal } = useGameStore();
   const currentBranch = getCurrentBranchName();
   const branches = Object.values(graph.branches);
 
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [mergeTarget, setMergeTarget] = useState<string | null>(null);
-
   const handleMergeClick = (targetBranch: string) => {
-      setMergeTarget(targetBranch);
-      setIsReviewOpen(true);
-  };
-
-  const confirmMerge = () => {
-      if (mergeTarget) {
-          mergeProposal(mergeTarget);
-      }
-      setIsReviewOpen(false);
-      setMergeTarget(null);
+      openReviewModal(targetBranch);
   };
 
   return (
@@ -98,15 +85,6 @@ export default function BranchNavigator() {
       </div>
     </div>
 
-    {/* Code Review Modal */}
-    {mergeTarget && (
-        <CodeReviewModal 
-            targetBranch={mergeTarget}
-            isOpen={isReviewOpen}
-            onConfirm={confirmMerge}
-            onCancel={() => setIsReviewOpen(false)}
-        />
-    )}
     </>
   );
 }
