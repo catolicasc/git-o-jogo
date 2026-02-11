@@ -203,9 +203,14 @@ app.prepare().then(() => {
             io.to("game_room").emit("message", `A Profecia "${playerBranchName}" foi aceita e fundida na Verdade "${target}"!`);
             io.to(socket.id).emit("merge_success_yours"); // Trigger animation for the merger
             
-            // AUTO-DELETE BRANCH Logic
+            // AUTO-DELETE BRANCH Logic -> CHANGED TO PERSIST
             if (playerBranchName !== 'main') {
-                delete graph.branches[playerBranchName];
+                // DELETE graph.branches[playerBranchName]; // OLD
+                
+                // NEW: Mark as merged but keep it for visualization history
+                if (graph.branches[playerBranchName]) {
+                    graph.branches[playerBranchName].status = 'merged';
+                }
                 
                 // Move players on that branch to target
                 Object.keys(graph.activePlayers || {}).forEach(pid => {
@@ -214,7 +219,7 @@ app.prepare().then(() => {
                     }
                 });
                 io.to("game_room").emit("sync_graph", graph);
-                io.to("game_room").emit("message", `A profecia "${playerBranchName}" foi cumprida e desvaneceu da história.`);
+                io.to("game_room").emit("message", `A profecia "${playerBranchName}" foi cumprida e agora faz parte da história.`);
             }
 
         } else {
