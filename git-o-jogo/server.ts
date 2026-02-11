@@ -260,9 +260,14 @@ app.prepare().then(() => {
             graph.head = newCommit.id;
         }
 
-        // AUTO-DELETE BRANCH Logic (after conflict resolution)
+        // AUTO-DELETE BRANCH Logic (after conflict resolution) -> CHANGED TO PERSIST
         if (playerBranchName !== 'main') {
-            delete graph.branches[playerBranchName];
+            // DELETE graph.branches[playerBranchName]; // OLD
+
+            // NEW: Mark as merged
+            if (graph.branches[playerBranchName]) {
+                graph.branches[playerBranchName].status = 'merged';
+            }
 
             // Move players on that branch to target
             Object.keys(graph.activePlayers || {}).forEach(pid => {
@@ -270,7 +275,7 @@ app.prepare().then(() => {
                     graph.activePlayers![pid].branch = target;
                 }
             });
-             io.to("game_room").emit("message", `A profecia "${playerBranchName}" foi cumprida (após duelo) e desvaneceu da história.`);
+             io.to("game_room").emit("message", `A profecia "${playerBranchName}" foi cumprida (após duelo) e agora faz parte da história.`);
         }
 
         io.to("game_room").emit("sync_graph", graph);

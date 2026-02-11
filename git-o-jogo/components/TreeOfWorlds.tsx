@@ -116,7 +116,9 @@ export default function TreeOfWorlds() {
             // 4. Render Loop
             sortedCommits.forEach((commit) => {
                 const affinity = commitAffinity[commit.id] || 'detached';
-                
+                const dateStr = new Date(commit.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const displayMessage = `[${dateStr}] ${commit.message}`;
+
                 // Ensure Branch Exists
                 let branchVisual = branchVisuals[affinity];
                 if (!branchVisual) {
@@ -147,7 +149,7 @@ export default function TreeOfWorlds() {
                             branch: incomingBranch,
                             commitOptions: {
                                 hash: commit.id,
-                                subject: commit.message,
+                                subject: displayMessage,
                                 author: commit.author,
                                 dotText: commit.id === graph.head ? '👑' : '⚡',
                                 style: {
@@ -163,7 +165,7 @@ export default function TreeOfWorlds() {
                 // Regular Commit
                 branchVisual.commit({
                     hash: commit.id,
-                    subject: commit.message,
+                    subject: displayMessage,
                     author: commit.author,
                     dotText: commit.id === graph.head ? '👑' : '📜',
                     style: {
