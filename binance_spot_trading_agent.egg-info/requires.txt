@@ -1,0 +1,13 @@
+apscheduler<4.0.0,>=3.10.4
+fastapi<1.0.0,>=0.115.0
+httpx<1.0.0,>=0.28.1
+openai<2.0.0,>=1.68.2
+psycopg[binary]<4.0.0,>=3.2.6
+pydantic-settings<3.0.0,>=2.8.1
+python-dotenv<2.0.0,>=1.0.1
+sqlalchemy<3.0.0,>=2.0.39
+uvicorn<1.0.0,>=0.34.0
+websockets<16.0.0,>=15.0.1
+
+[dev]
+ruff<1.0.0,>=0.11.0

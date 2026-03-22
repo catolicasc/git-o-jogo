@@ -1,0 +1,16 @@
+.git
+.gitignore
+.venv
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+docker-compose.yml
+postgres_data
+evolution_postgres_data
+evolution_redis_data
+evolution_instances
+binance_spot_trading_agent.egg-info

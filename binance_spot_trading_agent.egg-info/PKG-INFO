@@ -1,0 +1,447 @@
+Metadata-Version: 2.4
+Name: binance-spot-trading-agent
+Version: 0.1.0
+Summary: MVP modular de trading agent para Binance Spot em Python
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: apscheduler<4.0.0,>=3.10.4
+Requires-Dist: fastapi<1.0.0,>=0.115.0
+Requires-Dist: httpx<1.0.0,>=0.28.1
+Requires-Dist: openai<2.0.0,>=1.68.2
+Requires-Dist: psycopg[binary]<4.0.0,>=3.2.6
+Requires-Dist: pydantic-settings<3.0.0,>=2.8.1
+Requires-Dist: python-dotenv<2.0.0,>=1.0.1
+Requires-Dist: sqlalchemy<3.0.0,>=2.0.39
+Requires-Dist: uvicorn<1.0.0,>=0.34.0
+Requires-Dist: websockets<16.0.0,>=15.0.1
+Provides-Extra: dev
+Requires-Dist: ruff<1.0.0,>=0.11.0; extra == "dev"
+
+# Binance Spot Trading Agent MVP em Python
+
+MVP completo em Python para um trading agent modular na Binance Spot, com `paper trading` por padrão, modo `observe`, auditoria completa, camada de risco obrigatória e arquitetura preparada para futura ativação de `live trading`.
+
+Importante: a imagem de referência mostra `binance.futures`, mas este projeto permanece explicitamente em `Spot`, não `Futures`.
+
+## Visão Geral
+
+O fluxo principal faz:
+
+1. Coleta market data pública da Binance Spot via REST.
+2. Coleta notícias/sinais por provider desacoplado.
+3. Gera tese estruturada com LLM por interface.
+4. Valida a tese com camada de risco determinística.
+5. Executa `paper trade` quando aprovado e o modo for `paper`.
+6. Salva auditoria completa das decisões.
+7. Expõe API REST para inspeção operacional.
+
+## Modos
+
+- `observe`: coleta dados e gera tese, sem executar trade.
+- `paper`: simula ordens e atualiza posições locais.
+- `live`: preparado para ordem real Spot, mas protegido por `ENABLE_LIVE_TRADING=false`.
+
+Padrão: `paper`.
+
+## Stack Python
+
+- Python 3.11+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Pydantic / pydantic-settings
+- APScheduler
+- httpx
+- websockets
+- OpenAI SDK por interface desacoplada
+- python-dotenv
+- Ruff
+
+## Estrutura
+
+```text
+project-root/
+  app/
+    main.py
+    server.py
+    config/
+    modules/
+      markets/
+      news/
+      agents/
+      execution/
+      portfolio/
+      trades/
+      audit/
+      health/
+    integrations/
+      binance/
+      llm/
+      news/
+    jobs/
+    shared/
+      db/
+      http/
+      utils/
+      types/
+    scripts/
+  docker-compose.yml
+  pyproject.toml
+```
+
+## Arquitetura
+
+### Diagrama de alto nível
+
+```mermaid
+flowchart LR
+    API["FastAPI"] --> Cycle["Trading Cycle"]
+    Scheduler["APScheduler"] --> Cycle
+    Cycle --> Markets["Markets Module"]
+    Cycle --> News["News Module"]
+    Cycle --> Research["Research Agent"]
+    Cycle --> Risk["Risk Agent"]
+    Cycle --> Decision["Decision Engine"]
+    Decision --> Executor["Executor Interface"]
+    Executor --> Paper["PaperExecutor"]
+    Executor --> Binance["BinanceExecutor"]
+    Markets --> BinanceREST["Binance Spot REST"]
+    Markets --> BinanceWS["Binance Spot WebSocket"]
+    Research --> LLM["LLM Provider Interface"]
+    News --> NewsProvider["News Provider Interface"]
+    Cycle --> DB["SQLAlchemy + PostgreSQL"]
+    Cycle --> Audit["Audit Logs"]
+```
+
+### Sequência do trading cycle
+
+```mermaid
+sequenceDiagram
+    participant Job as run_trading_cycle
+    participant Markets as MarketsService
+    participant News as NewsService
+    participant Research as ResearchAgent
+    participant Risk as RiskAgent
+    participant Decision as DecisionEngine
+    participant Executor as PaperExecutor
+    participant DB as PostgreSQL
+
+    Job->>Markets: collect_snapshot(symbol)
+    Markets->>DB: save MarketSnapshot
+    Job->>News: find_recent_by_symbol(symbol)
+    Job->>Research: generate(symbol, market, news)
+    Research->>DB: save Thesis
+    Job->>Risk: evaluate(thesis, market, limits)
+    Risk->>DB: save RiskEvaluation
+    Job->>Decision: decide(thesis, risk, market)
+    alt mode = paper and approved
+      Job->>Executor: execute(order)
+      Executor->>DB: save Trade
+      Executor->>DB: update Position
+    else no trade
+      Job-->>Job: skip execution
+    end
+    Job->>DB: save AuditLog and JobRun
+```
+
+### Módulos
+
+```mermaid
+flowchart TD
+    Main["app/main.py"] --> Config["config/"]
+    Main --> Jobs["jobs/"]
+    Main --> Modules["modules/"]
+    Main --> Integrations["integrations/"]
+    Main --> Shared["shared/"]
+
+    Modules --> Markets["markets/"]
+    Modules --> News["news/"]
+    Modules --> Agents["agents/"]
+    Modules --> Execution["execution/"]
+    Modules --> Portfolio["portfolio/"]
+    Modules --> Trades["trades/"]
+    Modules --> Audit["audit/"]
+    Modules --> Health["health/"]
+```
+
+### Entidades principais
+
+```mermaid
+erDiagram
+    MarketSnapshot {
+      int id
+      string symbol
+      float price
+      json raw_payload
+      datetime created_at
+    }
+    NewsItem {
+      int id
+      string symbol
+      string title
+      string url
+      datetime published_at
+    }
+    Thesis {
+      int id
+      string symbol
+      string direction
+      float confidence
+      string reasoning
+      json source_urls
+    }
+    RiskEvaluation {
+      int id
+      string symbol
+      boolean approved
+      string final_action
+      float max_usd_exposure
+      json warnings
+    }
+    Trade {
+      int id
+      string symbol
+      string side
+      float price
+      float quantity
+      string status
+    }
+    Position {
+      int id
+      string symbol
+      float quantity
+      float average_price
+      string status
+    }
+    AuditLog {
+      int id
+      string event_type
+      string symbol
+      string message
+      string status
+    }
+    JobRun {
+      int id
+      string job_name
+      string status
+      datetime started_at
+      datetime finished_at
+    }
+```
+
+## Variáveis de Ambiente
+
+Use `.env.example` como base:
+
+```env
+APP_PORT=3000
+NODE_ENV=development
+APP_MODE=paper
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/trading_agent
+OPENAI_API_KEY=
+BINANCE_API_KEY=
+BINANCE_API_SECRET=
+BINANCE_BASE_URL=https://api.binance.com
+BINANCE_WS_URL=wss://stream.binance.com:9443/ws
+ENABLE_LIVE_TRADING=false
+SYMBOL_ALLOWLIST=BTCUSDT,ETHUSDT
+DEFAULT_BANKROLL_USD=10000
+MAX_RISK_PER_TRADE=0.01
+NEWS_PROVIDER_API_KEY=
+```
+
+## Como Subir o Banco
+
+```bash
+docker compose up -d
+```
+
+## Como Instalar Dependências
+
+Com `pip`:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+## Como Inicializar o Banco
+
+```bash
+python -m app.scripts.init_db
+python -m app.scripts.seed
+```
+
+## Como Rodar
+
+```bash
+python -m app.server
+```
+
+Ou:
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
+```
+
+### Modo observe
+
+```bash
+APP_MODE=observe python -m app.server
+```
+
+### Modo paper
+
+```bash
+APP_MODE=paper python -m app.server
+```
+
+### Preparar live futuramente
+
+```bash
+APP_MODE=live ENABLE_LIVE_TRADING=true python -m app.server
+```
+
+## Aviso de Segurança
+
+`live trading` vem desabilitado por padrão. Mesmo em `APP_MODE=live`, ordens reais Spot são rejeitadas se `ENABLE_LIVE_TRADING != true`.
+
+## Endpoints REST
+
+- `GET /health`
+- `GET /markets`
+- `GET /markets/{symbol}`
+- `GET /news`
+- `GET /theses`
+- `GET /trades`
+- `GET /positions`
+- `GET /audit`
+- `POST /jobs/run-cycle`
+- `POST /execution/test-order`
+- `POST /execution/paper-order`
+
+## Jobs Avulsos
+
+```bash
+python -m app.jobs.scan_markets_job
+python -m app.jobs.collect_news_job
+python -m app.jobs.run_trading_cycle_job
+```
+
+## Exemplos
+
+### `GET /health`
+
+```json
+{
+  "status": "ok"
+}
+```
+
+### `POST /execution/paper-order`
+
+Request:
+
+```json
+{
+  "symbol": "BTCUSDT",
+  "side": "BUY",
+  "quantity": 0.001,
+  "price": 65000,
+  "rationale": "Manual paper test",
+  "confidence": 1
+}
+```
+
+Response:
+
+```json
+{
+  "status": "FILLED",
+  "message": "Paper order filled successfully",
+  "raw_payload": {
+    "symbol": "BTCUSDT",
+    "side": "BUY",
+    "price": 65000,
+    "quantity": 0.001,
+    "rationale": "Manual paper test",
+    "confidence": 1
+  }
+}
+```
+
+### `POST /execution/test-order`
+
+Request:
+
+```json
+{
+  "symbol": "BTCUSDT",
+  "side": "BUY",
+  "quantity": 0.001,
+  "price": 65000
+}
+```
+
+### `POST /jobs/run-cycle`
+
+Response exemplo:
+
+```json
+{
+  "mode": "paper",
+  "symbols_processed": 2,
+  "results": [
+    {
+      "symbol": "BTCUSDT",
+      "decision": {
+        "should_trade": false,
+        "action": "NO_TRADE"
+      }
+    }
+  ]
+}
+```
+
+## Fluxo End-to-End de Paper Trading
+
+1. `docker compose up -d`
+2. copie `.env.example` para `.env`
+3. `python -m venv .venv`
+4. `source .venv/bin/activate`
+5. `pip install -e ".[dev]"`
+6. `python -m app.scripts.init_db`
+7. `python -m app.server`
+8. `POST /jobs/run-cycle`
+9. consulte `GET /theses`, `GET /trades`, `GET /positions` e `GET /audit`
+
+Se a tese passar pela camada de risco e o modo for `paper`, uma ordem simulada será salva como `FILLED`, a posição local será atualizada e toda a decisão ficará auditada.
+
+## Binance Spot: Cuidados Implementados
+
+- Market data pública isolada em [app/integrations/binance/binance_client.py](/Users/luizalmeida/Documents/projetos/cripto/bot-compra/app/integrations/binance/binance_client.py)
+- Assinatura HMAC isolada em [app/integrations/binance/binance_signer.py](/Users/luizalmeida/Documents/projetos/cripto/bot-compra/app/integrations/binance/binance_signer.py)
+- WebSocket sem lógica de decisão em [app/integrations/binance/binance_ws.py](/Users/luizalmeida/Documents/projetos/cripto/bot-compra/app/integrations/binance/binance_ws.py)
+- `test order` separado de `live order`
+- Validação de filtros do símbolo:
+  - `LOT_SIZE`
+  - `MIN_NOTIONAL` ou `NOTIONAL`
+  - `PRICE_FILTER`
+- Tratamento de timeout, retry, reconnect e erro de assinatura
+
+## Regras de Segurança
+
+- Nunca operar se `confidence < 0.70`
+- Nunca operar acima de `1%` do bankroll por trade
+- Nunca operar símbolo fora da allowlist
+- Nunca enviar live order se `ENABLE_LIVE_TRADING != true`
+- `paper` por padrão
+- Auditoria em todas as etapas importantes
+
+## Próximos Passos Naturais
+
+- Trocar `MockNewsProvider` por provider real
+- Adicionar testes automatizados
+- Adicionar Alembic para migrations formais
+- Expandir `BinanceExecutor` para persistir ordens reais Spot completas
